@@ -1,0 +1,3 @@
+Implement your own licensed copy of Sencha Ext JS here
+Download from https://www.sencha.com/
+FCTT was developed using version 3.4.0

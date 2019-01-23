@@ -1,0 +1,2 @@
+Implement GeoExt — JavaScript Toolkit for Rich Web Mapping Applications
+Download the appropriate version of GeoExt, for your Ext JS and OpenLayers libraries from http://geoext.org/

@@ -1,0 +1,97 @@
+<html>
+    <head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="initial-scale=1">
+        <title>Conservation ROI</title>
+        <link rel="stylesheet" type="text/css" href="ext/resources/css/ext-all.css">
+        <script type="text/javascript" src="ext/adapter/ext/ext-base.js"></script>
+        <script type="text/javascript" src="ext/ext-all.js"></script>
+        <script src="openlayers/OpenLayers.js"></script>
+        <script type="text/javascript" src="geoext/lib/GeoExt.js"></script>
+		<script src="http://maps.google.com/maps/api/js?v=3.5&sensor=false">// Sep 9 2015 had to change v=3 to v=3.5 to get terrain to load immediately</script> 
+		
+		<script src="scripts/colorslider.js" type="text/javascript"></script>
+		
+		<!-- For printing -->
+		<script type="text/javascript" src="../../geoserver/pdf/info.json?var=printCapabilities"></script>
+		
+		<link rel="stylesheet" type="text/css" href="openlayers/theme/default/style.css">
+		<link rel="icon" href="images/treeicon.png">
+		
+		<style type="text/css">
+ 		    /* CSS code to position scale bar such that it isn't on top of the Google logo, and make the txt a bit larger */
+				.olControlScaleLine {
+					bottom: 33px;
+					left: 0px;
+					padding: 5px;
+					font-size: medium;
+				}
+						
+				/* CSS code to style the top of the Ext "tab panel" in the prioritization toolbox*/
+				
+				.x-tab-panel-header{
+					background-color:#ffffff;
+				}
+				.x-color-palette{
+					width:225;
+				}
+				.x-color-palette em span {
+					height: 14px;
+					line-height: 14px;
+					width: 14px;
+				}
+			
+			/* The following CSS code formats the colored slider we are using to adjust prioritization weights*/
+			
+				.ext-ux-slider-left { 
+					position: absolute;
+					background : green;
+					overflow:hidden;
+				}
+				.ext-ux-slider-middle { 
+					position: absolute;
+					background : red;
+					overflow:hidden;
+				}
+				.ext-ux-slider-right { 
+					position: absolute;
+					background : blue;
+					overflow:hidden;
+				}
+				.x-slider-horz .ext-ux-slider-left, .ext-ux-slider-middle, .ext-ux-slider-right {
+					height:6px;
+					top:8px;
+				}
+		
+				/* The following CSS code customizes the position of the CustomNavToolbar (pan button and zoombox button)*/	
+				.olControlNavToolbar {
+				  top: 125px;
+				}	
+				
+				/*Customize Ext window minimize icon to make it bigger /*
+				.x-tool-bigminimize{
+					//height: 50px;
+					background-image: url(images/bigminimize.gif);
+				}
+				
+				.x-tool-bigminimize-over{
+					background-image: url(images/bigminimize.gif);
+				}
+				
+				// if using an image sprite:
+				//.x-tool-minimize {background-image: url(images/bigminimize.png) no-repeat 0 0;}
+				//.x-tool-minimize-over {background-position:-15px 0;}
+	
+				/* Add a hidearrow class to hide the down arrow of a menu (for login menu)*/
+				.hidearrow .x-btn-mc em.x-btn-arrow {
+					background-image:none;
+				}
+		</style>		
+
+		<script type="text/javascript" src="../../usersystem/fctt_aldea_load.php"></script>
+		<script type="text/javascript" src="scripts/fctt_aldea.js"></script>
+		
+    </head>
+    <body>
+    </body>
+</html>

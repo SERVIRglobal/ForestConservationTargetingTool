@@ -1,0 +1,3 @@
+Install OpenLayers here
+Download from https://openlayers.org/
+FCET has been developed with OpenLayers 2.13.1
