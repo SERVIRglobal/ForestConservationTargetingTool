@@ -1,0 +1,1966 @@
+﻿--MISC FOR SETUP
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*
+				
+	--create table with layerPINs: "standingdesk"
+	-- ----------------------------------------------------------------------------------
+		/*
+		CREATE TABLE standingdesk (
+		username	varchar,
+		layerPIN	varchar
+		);
+		*/
+		
+	--define median() function
+	-- -------------------------------------
+
+		/*
+		CREATE OR REPLACE FUNCTION _final_median(numeric[])
+		   RETURNS numeric AS
+		$$
+		   SELECT AVG(val)
+		   FROM (
+			 SELECT val
+			 FROM unnest($1) val
+			 ORDER BY 1
+			 LIMIT  2 - MOD(array_upper($1, 1), 2)
+			 OFFSET CEIL(array_upper($1, 1) / 2.0) - 1
+		   ) sub;
+		$$
+		LANGUAGE 'sql' IMMUTABLE;
+		 
+		CREATE AGGREGATE median(numeric) (
+		  SFUNC=array_append,
+		  STYPE=numeric[],
+		  FINALFUNC=_final_median,
+		  INITCOND='{}'
+		);
+		*/
+		
+
+	--additional GRANT calls (for localhost version only). These are necessary for the Compose Dataset functionality to work from PHP.
+	-- ----------------------------------------------------------------------------------
+		GRANT SELECT ON TABLE spatial_ref_sys TO public;
+		--if any need to rename a table e.g.: ALTER TABLE ca_1km_final RENAME TO obd_ca_1km
+	
+SQL QUERIES TO DEFINE LAYERS IN GEOSERVER
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*
+	getFeatureInfo_sa1km
+	------------------------------------------------------------------------------------	
+	------------------------------------------------------------------------------------	
+	------------------------------------------------------------------------------------	
+	------------------------------------------------------------------------------------	
+
+	
+	sa_1km_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_sa_1km_r%regionNum% WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		
+		regionNum, 1, ^([1-9]|[1-3][0-9]|4[0-6])$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+		SRID: 4326, identifier: fctt_id
+		
+	sa_1km_ ONLY NECESSARY TEMPORARILY FOR DOWNLOADING ca_1km_r%n% FILES, downloaded by copying wget_sa1km.txt from \Resources for Build\ to folder containing wget program, then running "wget -i wget_sa1km.txt"  <- Previously tried "for /F "eol=; tokens=1,2 delims=," %i in (wget_sa1km.txt) do wget -O %j %i" using a file including nice names for the zip files but loop didn't seem to be waiting for previous to finish, so just manually renaming after download
+	------------------------------------------------------------------------------------
+		SELECT fctt_id, carbon, bio, bio_count,hydro, risk, cost, forarea, identifying_info, geom FROM obd_sa_1km_r%regionNum%
+	
+		regionNum, 1, ^([1-9]|[1-3][0-9]|4[0-6])$
+		SELECT * FROM obd_sa_1km_r%regionNum%
+		SRID: 4326, identifier: none
+		
+	sa_10km_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_sa_10km WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+		SRID: 4326, identifier: fctt_id
+		
+	ca_adm_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_ca_adm WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+		SRID: 4326, identifier: fctt_id
+		
+	ca_10km_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_ca_10km WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+		SRID: 4326, identifier: fctt_id
+		
+	ca_1km_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_ca_1km WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+		SRID: 4326, identifier: fctt_id
+		Set Publishing->Per-Request Feature Limit to 10000 so no error when user tries to select too many
+		
+	mex_pred_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_mex_pred WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold% AND %predAcessCode%=519
+		AND fctt_id < (CASE %predAcessCode%
+				WHEN 519 THEN 999999
+				ELSE 2
+				END
+			)
+			
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		predAcessCode, 519, ^[,\d]+$
+		
+		SRID: 4326, identifier: fctt_id
+		Set Publishing->Per-Request Feature Limit to 10000 so no error when user tries to select too many
+	
+	mredd_query
+	------------------------------------------------------------------------------------	
+		SELECT * FROM obd_mredd WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		AND fctt_id < (CASE %predAcessCode%
+				WHEN 519 THEN 999999
+				ELSE 2
+				END
+			)
+		
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		predAcessCode, 519, ^[,\d]+$
+		
+		SRID: 4326, identifier: fctt_id
+		
+	marginality
+	------------------------------------------------------------------------------------	
+		SELECT gid, geom, marg_num FROM marginality
+	
+		SRID: 4326, identifier: gid
+		Set default style to Marginality
+			
+	userlayer_query
+	------------------------------------------------------------------------------------
+		SELECT fctt_id, geom, identifying_info, carbon, bio, hydro, risk, cost, forarea, scenario1, scenario2, scenario3 FROM userdata_%userName%_ds_%dataSource% WHERE '%layerPIN%'= (SELECT layerpin FROM standingdesk WHERE username = '%userName%' LIMIT 1) AND %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		AND (CASE '%userName%'
+				WHEN 'zzdefaultuser' THEN 0
+				ELSE 519
+				END
+			) = %predAcessCode%
+	
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		userName, zzdefaultuser, ^[\w\d]+$
+		dataSource, defaultlayer, ^[\w\d]+$
+		layerPIN, 1111111111, ^[\w\d]+$
+		predAcessCode, 519, ^[,\d]+$
+		
+		SRID: 4326, identifier: fctt_id
+	
+	getExtents
+	------------------------------------------------------------------------------------
+		SELECT st_xmin(st_extent(geom)) AS xmin, st_xmax(st_extent(geom)) AS xmax, st_ymin(st_extent(geom)) AS ymin, st_ymax(st_extent(geom)) AS ymax FROM obd_%dataSource% WHERE %whereParam%=%whereValue% AND forarea >= %forestThreshold%
+		
+		dataSource, ca_adm, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+	getExtents_userdata
+	------------------------------------------------------------------------------------
+		SELECT st_xmin(st_extent(geom)) AS xmin, st_xmax(st_extent(geom)) AS xmax, st_ymin(st_extent(geom)) AS ymin, st_ymax(st_extent(geom)) AS ymax FROM userdata_%userName%_ds_%dataSource% WHERE '%layerPIN%'= (SELECT layerpin FROM standingdesk WHERE username = '%userName%' LIMIT 1) AND %whereParam%=%whereValue% AND forarea >= %forestThreshold%
+		
+		userName, zzdefaultuser, ^[\w\d]+$
+		dataSource, defaultlayer, ^[\w\d]+$
+		layerPIN, 1111111111, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+
+	getMaxAvgMinWhere
+	------------------------------------------------------------------------------------	
+		SELECT MIN(%theAttribute%), AVG(%theAttribute%), MAX(%theAttribute%), median(%theAttribute%::numeric) FROM obd_%dataSource% WHERE %whereParam%=%whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+		
+		dataSource, ca_adm, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		theAttribute, carbon, ^[\w\d\_]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+	
+
+	getMaxAvgMinWhere_userdata
+	------------------------------------------------------------------------------------	
+		SELECT MIN(%theAttribute%), AVG(%theAttribute%), MAX(%theAttribute%), median(%theAttribute%::numeric) FROM userdata_%userName%_ds_%dataSource% WHERE '%layerPIN%'= (SELECT layerpin FROM standingdesk WHERE username = '%userName%' LIMIT 1) AND %whereParam%=%whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+
+		userName, zzdefaultuser, ^[\w\d]+$
+		dataSource, defaultlayer, ^[\w\d]+$
+		layerPIN, 1111111111, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		theAttribute, carbon, ^[\w\d\_]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		
+	getQuantile
+	------------------------------------------------------------------------------------	
+		SELECT %theAttribute% as value FROM obd_%dataSource% WHERE %whereParam%=%whereValue% AND forarea >= %forestThreshold% ORDER BY %theAttribute% ASC LIMIT (1) OFFSET (SELECT (%percentage%*count(*)) FROM obd_%dataSource% WHERE %whereParam%=%whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%)
+		
+		dataSource, ca_adm, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		theAttribute, carbon, ^[\w\d\_]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		percentage, 0.5, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$	
+		
+	getQuantile_userdata
+	------------------------------------------------------------------------------------	
+		WITH theData AS (
+			SELECT * FROM userdata_%userName%_ds_%dataSource% WHERE '%layerPIN%'= (SELECT layerpin FROM standingdesk WHERE username = '%userName%' LIMIT 1)
+		)
+		SELECT %theAttribute% as value FROM theData WHERE %whereParam%=%whereValue% AND forarea >= %forestThreshold% ORDER BY %theAttribute% ASC LIMIT (1) OFFSET (SELECT (%percentage%*count(*)) FROM theData WHERE %whereParam%=%whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%)
+		
+		userName, zzdefaultuser, ^[\w\d]+$
+		dataSource, defaultlayer, ^[\w\d]+$
+		layerPIN, 1111111111, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		theAttribute, carbon, ^[\w\d\_]+$
+		percentage, 0.5, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+	  	 
+	getFeatureInfo_sa
+	------------------------------------------------------------------------------------
+		 SELECT fctt_id, identifying_info, geom, carbon, bio, bio_count, hydro, cost, risk, forarea, scenario1, scenario2, scenario3 FROM obd_%dataSource% WHERE ST_WITHIN(ST_SetSRID(ST_MAKEPOINT(%lonCoord%,%latCoord%), 4326), obd_%dataSource%.geom)
+	 
+		 dataSource, sa_10km, ^[\w\d]+$
+		 latCoord, 14.582999, ^[\-\d\.]+$
+		 lonCoord, -85.579577, ^[\-\d\.]+$
+		 
+		 SRID: 4326, identifier: fctt_id
+	
+	getFeatureInfo_ca
+	------------------------------------------------------------------------------------
+		 SELECT fctt_id, identifying_info, geom, carbon, carbon_total, carbon_soil, bio, bio_loc, bio_count, hydro, cost, risk, forarea, scenario1, scenario2, scenario3 FROM obd_ca_%dataSource% WHERE ST_WITHIN(ST_SetSRID(ST_MAKEPOINT(%lonCoord%,%latCoord%), 4326), obd_ca_%dataSource%.geom)
+	 
+		 dataSource, adm, ^[\w\d]+$
+		 latCoord, 14.582999, ^[\-\d\.]+$
+		 lonCoord, -85.579577, ^[\-\d\.]+$
+		 
+		 SRID: 4326, identifier: fctt_id
+		 
+	getFeatureInfo_mex
+	------------------------------------------------------------------------------------
+	SELECT fctt_id, identifying_info, geom, carbon, bio, hydro, cost, risk, forarea, scenario1, scenario2, scenario3 FROM obd_%dataSource% WHERE ST_WITHIN(ST_SetSRID(ST_MAKEPOINT(%lonCoord%,%latCoord%), 4326), obd_%dataSource%.geom)	 
+			AND fctt_id < (CASE %predAcessCode%
+				WHEN 519 THEN 999999
+				ELSE 2
+				END
+			)
+		 
+		 dataSource, ca_adm, ^[\w\d]+$
+		 predAcessCode, 0, ^[,\d]+$
+		 latCoord, 14.582999, ^[\-\d\.]+$
+		 lonCoord, -85.579577, ^[\-\d\.]+$
+		 
+		 SRID: 4326, identifier: fctt_id
+		 
+	getFeatureInfo_userdata
+	------------------------------------------------------------------------------------
+	
+		SELECT fctt_id, identifying_info, geom, carbon, bio, hydro, cost, risk, forarea, scenario1, scenario2, scenario3 FROM userdata_%userName%_ds_%dataSource% WHERE ST_WITHIN(ST_SetSRID(ST_MAKEPOINT(%lonCoord%,%latCoord%), 4326), userdata_%userName%_ds_%dataSource%.geom)
+		AND '%layerPIN%'= (SELECT layerpin FROM standingdesk WHERE username = '%userName%' LIMIT 1) 
+		AND (CASE '%userName%'
+				WHEN 'zzdefaultuser' THEN 0
+				ELSE 519
+				END
+			) = %predAcessCode%
+
+		userName, zzdefaultuser, ^[\w\d]+$
+		dataSource, defaultlayer, ^[\w\d]+$
+		layerPIN, 1111111111, ^[\w\d]+$
+		latCoord, 14.582999, ^[\-\d\.]+$
+		lonCoord, -85.579577, ^[\-\d\.]+$
+		predAcessCode, 0, ^[,\d]+$
+		 
+		SRID: 4326, identifier: fctt_id
+
+	dummyDataLayerForWMSLegend	
+	------------------------------------------------------------------------------------
+	
+		SELECT ST_SetSRID(ST_MakePoint(0,0),4326) as geom, 1 as fctt_id
+	
+		SRID: 4326, identifier: fctt_id
+	
+	data_prioritize
+	------------------------------------------------------------------------------------
+	WITH DataSet AS (
+			SELECT gid, fctt_id,
+			%carbonVar% as carbon, %bioVar% as bio,
+			hydro, risk, cost, identifying_info,
+			forarea/100 AS forarea, geom, shape_area_ha
+			FROM obd_%dataSource% WHERE %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold% AND
+			(CASE '%dataSource%'
+				WHEN 'mredd' THEN 519
+				WHEN 'mex_pred' THEN 519
+				ELSE 0
+				END
+			) = %predAcessCode%
+		),
+		GetMed AS
+		(
+			SELECT * FROM DataSet INNER JOIN (SELECT %medianOrMean%(carbon :: numeric) as carbon_med, %medianOrMean%(bio :: numeric) as bio_med, %medianOrMean%(hydro :: numeric) as hydro_med FROM DataSet) AS medians ON 1=1
+		),
+		GetNorm AS
+		(
+			SELECT gid, fctt_id, carbon, bio, hydro, risk, cost, forarea, shape_area_ha, geom, identifying_info,
+			(CASE WHEN carbon_med = 0 THEN null ELSE carbon/carbon_med END) AS carbon_norm,
+			(CASE WHEN bio_med = 0 THEN null ELSE bio/bio_med END) AS bio_norm,
+			(CASE WHEN hydro_med = 0 THEN null ELSE hydro/hydro_med END) AS hydro_norm
+			FROM GetMed
+		),
+		Benefit AS
+		(
+		SELECT *,
+			(CASE WHEN cost = 0 THEN null ELSE (%weight1%*carbon_norm+%weight2%*bio_norm+%weight3%*hydro_norm)*%riskVar%/%costVar% END) AS compositeecb,
+			(CASE WHEN cost = 0 THEN null ELSE carbon_norm*%riskVar%/%costVar% END) AS scenario1,
+			(CASE WHEN cost = 0 THEN null ELSE bio_norm*%riskVar%/%costVar% END) AS scenario2,
+			(CASE WHEN cost = 0 THEN null ELSE hydro_norm*%riskVar%/%costVar% END) AS scenario3,
+			%costVar%*%areaWeight%/100 AS totalcost
+			FROM GetNorm
+		),
+		BenefitBudget AS
+		(
+			SELECT *,
+			SUM(totalcost) OVER (ORDER BY compositeecb DESC NULLS LAST) AS cumcost,
+			SUM(totalcost) OVER (ORDER BY scenario1 DESC NULLS LAST) AS cumcost1,
+			SUM(totalcost) OVER (ORDER BY scenario2 DESC NULLS LAST) AS cumcost2,
+			SUM(totalcost) OVER (ORDER BY scenario3 DESC NULLS LAST) AS cumcost3
+			FROM Benefit
+		), 
+		BenefitBudgetSelected AS
+		(
+		SELECT *,
+		cumcost < %budgetMax% as selected,
+		cumcost1 < %budgetMax% as selectedc,
+		cumcost2 < %budgetMax% as selectedb,
+		cumcost3 < %budgetMax% as selectedh
+		FROM BenefitBudget
+		)
+		SELECT gid, fctt_id, carbon, bio, hydro, risk, cost, forarea, shape_area_ha, totalcost, identifying_info,
+		carbon_norm, bio_norm, hydro_norm, scenario1, scenario2, scenario3, compositeecb, selected, selectedc, selectedb, selectedh, (CASE WHEN %geomZero% = 519 THEN geom ELSE null END) AS geom
+		FROM BenefitBudgetSelected
+
+	
+		dataSource, mredd, ^[\w\d]+$
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue 1, ^[\w\d]+$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		budgetMax, .1*(SELECT MAX(cumcost) FROM BenefitBudget), [\d\.]+(\*\(SELECT MAX\(cumcost\) FROM BenefitBudget\))?
+		weight1, 0.33, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+		weight2, 0.33, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+		weight3, 0.33, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		costVar, cost, ^[\w\d]+$
+		riskVar, risk, ^[\w\d]+$
+		medianOrMean, median, ^(median|avg)$ 
+		carbonVar, carbon, ^[\w\d\_]+$
+		bioVar, bio, ^[\w\d\_]+$
+		predAcessCode, 0, ^[,\d]+$
+		geomZero, 0, ^[,\d]+$
+		areaWeight, forarea*shape_area_ha, 1|forarea\*shape_area_ha
+	
+	SRID: 4326, identifier: gid <- important so that fctt_id gets downloaded with shapefile. leaving this blank led to errors with the table metadata when re-uploading
+	
+	data_prioritize_userdata
+	------------------------------------------------------------------------------------
+		WITH DataSet AS (
+			SELECT gid, fctt_id, carbon, bio, hydro, risk, cost, identifying_info,
+			forarea/100 AS forarea, geom, ST_Area(geom::geography)/10000 AS	shape_area_ha
+			FROM userdata_%userName%_ds_%dataSource% WHERE '%layerPIN%'= (SELECT layerpin FROM standingdesk WHERE username = '%userName%' LIMIT 1) AND %whereParam%= %whereValue% AND %idAttribute% IN (%inSet%) AND forarea >= %forestThreshold%
+			AND (CASE '%dataSource%'
+				WHEN 'zzdefaultuser' THEN 0
+				ELSE 519
+				END
+			) = %predAcessCode%
+		),
+		GetMed AS
+		(
+			SELECT * FROM DataSet INNER JOIN (SELECT %medianOrMean%(carbon :: numeric) as carbon_med, %medianOrMean%(bio :: numeric) as bio_med, %medianOrMean%(hydro :: numeric) as hydro_med FROM DataSet) AS medians ON 1=1
+		),
+		GetNorm AS
+		(
+			SELECT gid, fctt_id, carbon, bio, hydro, risk, cost, forarea, shape_area_ha, geom, identifying_info,
+			(CASE WHEN carbon_med = 0 THEN null ELSE carbon/carbon_med END) AS carbon_norm,
+			(CASE WHEN bio_med = 0 THEN null ELSE bio/bio_med END) AS bio_norm,
+			(CASE WHEN hydro_med = 0 THEN null ELSE hydro/hydro_med END) AS hydro_norm
+			FROM GetMed
+		),
+		Benefit AS
+		(
+		SELECT *,
+			(CASE WHEN cost = 0 THEN null ELSE (%weight1%*carbon_norm+%weight2%*bio_norm+%weight3%*hydro_norm)*%riskVar%/%costVar% END) AS compositeecb,
+			(CASE WHEN cost = 0 THEN null ELSE carbon_norm*%riskVar%/%costVar% END) AS scenario1,
+			(CASE WHEN cost = 0 THEN null ELSE bio_norm*%riskVar%/%costVar% END) AS scenario2,
+			(CASE WHEN cost = 0 THEN null ELSE hydro_norm*%riskVar%/%costVar% END) AS scenario3,
+			%costVar%*%areaWeight%/100 AS totalcost
+			FROM GetNorm
+		),
+		BenefitBudget AS
+		(
+			SELECT *,
+			SUM(totalcost) OVER (ORDER BY compositeecb DESC NULLS LAST) AS cumcost,
+			SUM(totalcost) OVER (ORDER BY scenario1 DESC NULLS LAST) AS cumcost1,
+			SUM(totalcost) OVER (ORDER BY scenario2 DESC NULLS LAST) AS cumcost2,
+			SUM(totalcost) OVER (ORDER BY scenario3 DESC NULLS LAST) AS cumcost3
+			FROM Benefit
+		), 
+		BenefitBudgetSelected AS
+		(
+		SELECT *,
+		cumcost < %budgetMax% as selected,
+		cumcost1 < %budgetMax% as selectedc,
+		cumcost2 < %budgetMax% as selectedb,
+		cumcost3 < %budgetMax% as selectedh
+		FROM BenefitBudget
+		)
+		SELECT gid, fctt_id, carbon, bio, hydro, risk, cost, forarea, identifying_info,
+		totalcost, shape_area_ha,
+		carbon_norm, bio_norm, hydro_norm, scenario1, scenario2, scenario3, compositeecb, selected, selectedc, selectedb, selectedh,
+		(CASE WHEN %geomZero% = 519 THEN geom ELSE null END) AS geom
+		FROM BenefitBudgetSelected
+
+	
+		whereParam, 1, ST_Intersects\(geom, \(SELECT ST_MakePolygon\(ST_GeomFromText\('LINESTRING\((-?\d*(\.\d)? ?,?)+\)',4326\)\)\)\)|\w*
+		whereValue, 1, ^[\w\d]+$
+		inSet, 1, ^[,\d]+$
+		idAttribute, 1, ^[\w\d]+$
+		budgetMax, .1*(SELECT MAX(cumcost) FROM BenefitBudget), [\d\.]+(\*\(SELECT MAX\(cumcost\) FROM BenefitBudget\))?
+		weight1, 0.33, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+		weight2, 0.33, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+		weight3, 0.33, ^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$
+		forestThreshold, 25, [-+]?[0-9]*\.?[0-9]+
+		costVar, cost, ^[\w\d]+$
+		riskVar, risk, ^[\w\d]+$
+		medianOrMean, median, ^(median|avg)$
+		userName, zzdefaultuser, ^[\w\d]+$
+		dataSource, defaultlayer, ^[\w\d]+$
+		layerPIN, 1111111111, ^[\w\d]+$
+		predAcessCode, 0, ^[,\d]+$
+		geomZero, 0, ^[,\d]+$
+		areaWeight, forarea*shape_area_ha, 1|forarea\*shape_area_ha
+		
+		SRID: 4326, identifier: gid <- important so that fctt_id gets downloaded with shapefile. leaving this blank led to errors with the table metadata when re-uploading
+	 
+*/	
+
+--STYLES
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*
+
+	default_fctt 
+	------------------------------------------------------------------------------------
+		<?xml version="1.0" encoding="UTF-8"?>
+		<sld:StyledLayerDescriptor
+			xmlns="http://www.opengis.net/sld"
+			xmlns:sld="http://www.opengis.net/sld"
+			xmlns:ogc="http://www.opengis.net/ogc"
+			xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+			<sld:NamedLayer>
+				<sld:Name>forestro_users_ws:ca_adm_query</sld:Name>
+				<sld:UserStyle>
+					<sld:FeatureTypeStyle>
+						<sld:Rule>
+							<sld:Title>Conservation ROI Layer</sld:Title>
+							<PolygonSymbolizer>
+								<Fill>
+									<CssParameter name="fill">#003300</CssParameter>
+									<CssParameter name="fill-opacity">1</CssParameter>
+								</Fill>
+								<sld:Stroke/>
+							</PolygonSymbolizer>
+						</sld:Rule>
+					</sld:FeatureTypeStyle>
+				</sld:UserStyle>
+			</sld:NamedLayer>
+		</sld:StyledLayerDescriptor>
+
+
+	marginality
+	------------------------------------------------------------------------------------
+	
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+	  <sld:NamedLayer>
+		<sld:Name>Marginalization Index</sld:Name>
+		<sld:UserStyle>
+			<sld:FeatureTypeStyle>
+			<sld:Name>Marginalization Index</sld:Name> 
+		  <sld:Rule>
+			<sld:Title>0</sld:Title>
+			<ogc:Filter>
+			  <ogc:PropertyIsEqualTo>
+				<ogc:PropertyName>marg_num</ogc:PropertyName>
+				<ogc:Literal>0</ogc:Literal>
+			  </ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+			<sld:PolygonSymbolizer>
+			  <sld:Fill>
+				<sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+			  </sld:Fill>
+			</sld:PolygonSymbolizer>
+		  </sld:Rule>       
+			<sld:Rule>
+			<sld:Title>1</sld:Title>
+			<ogc:Filter>
+			  <ogc:PropertyIsEqualTo>
+				<ogc:PropertyName>marg_num</ogc:PropertyName>
+				<ogc:Literal>1</ogc:Literal>
+			  </ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+			<sld:PolygonSymbolizer>
+			  <sld:Fill>
+				<sld:CssParameter name="fill">#0066FF</sld:CssParameter>
+			  </sld:Fill>
+			</sld:PolygonSymbolizer>
+		  </sld:Rule>       
+			<sld:Rule>
+			<sld:Title>2</sld:Title>
+			<ogc:Filter>
+			  <ogc:PropertyIsEqualTo>
+				<ogc:PropertyName>marg_num</ogc:PropertyName>
+				<ogc:Literal>2</ogc:Literal>
+			  </ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+			<sld:PolygonSymbolizer>
+			  <sld:Fill>
+				<sld:CssParameter name="fill">#3399FF</sld:CssParameter>
+			  </sld:Fill>
+			</sld:PolygonSymbolizer>
+		  </sld:Rule>       
+		   <sld:Rule>
+			<sld:Title>3</sld:Title>
+			<ogc:Filter>
+			  <ogc:PropertyIsEqualTo>
+				<ogc:PropertyName>marg_num</ogc:PropertyName>
+				<ogc:Literal>3</ogc:Literal>
+			  </ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+			<sld:PolygonSymbolizer>
+			  <sld:Fill>
+				<sld:CssParameter name="fill">#66CCFF</sld:CssParameter>
+			  </sld:Fill>
+			</sld:PolygonSymbolizer>
+		  </sld:Rule>       
+			<sld:Rule>
+			<sld:Title>4</sld:Title>
+			<ogc:Filter>
+			  <ogc:PropertyIsEqualTo>
+				<ogc:PropertyName>marg_num</ogc:PropertyName>
+				<ogc:Literal>4</ogc:Literal>
+			  </ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+			<sld:PolygonSymbolizer>
+			  <sld:Fill>
+				<sld:CssParameter name="fill">#CCFFFF</sld:CssParameter>
+			  </sld:Fill>
+			</sld:PolygonSymbolizer>
+		  </sld:Rule>       
+			<sld:Rule>
+			<sld:Title>5</sld:Title>
+			<ogc:Filter>
+			  <ogc:PropertyIsEqualTo>
+				<ogc:PropertyName>marg_num</ogc:PropertyName>
+				<ogc:Literal>5</ogc:Literal>
+			  </ogc:PropertyIsEqualTo>
+			</ogc:Filter>
+			<sld:PolygonSymbolizer>
+			  <sld:Fill>
+				<sld:CssParameter name="fill">#FFFFFF</sld:CssParameter>
+			  </sld:Fill>
+			</sld:PolygonSymbolizer>
+		  </sld:Rule>       
+		  </sld:FeatureTypeStyle>
+		</sld:UserStyle>
+	   </sld:NamedLayer>
+	</sld:StyledLayerDescriptor>
+	
+	marginality_span
+	------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8" ?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+  <sld:NamedLayer>
+    <sld:Name>Índice de Marginación</sld:Name>
+    <sld:UserStyle>
+        <sld:FeatureTypeStyle>
+        <sld:Name>Índice de Marginación</sld:Name> 
+      <sld:Rule>
+        <sld:Title>0</sld:Title>
+        <ogc:Filter>
+          <ogc:PropertyIsEqualTo>
+            <ogc:PropertyName>marg_num</ogc:PropertyName>
+            <ogc:Literal>0</ogc:Literal>
+          </ogc:PropertyIsEqualTo>
+        </ogc:Filter>
+        <sld:PolygonSymbolizer>
+          <sld:Fill>
+            <sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+          </sld:Fill>
+        </sld:PolygonSymbolizer>
+      </sld:Rule>       
+        <sld:Rule>
+        <sld:Title>1</sld:Title>
+        <ogc:Filter>
+          <ogc:PropertyIsEqualTo>
+            <ogc:PropertyName>marg_num</ogc:PropertyName>
+            <ogc:Literal>1</ogc:Literal>
+          </ogc:PropertyIsEqualTo>
+        </ogc:Filter>
+        <sld:PolygonSymbolizer>
+          <sld:Fill>
+            <sld:CssParameter name="fill">#0066FF</sld:CssParameter>
+          </sld:Fill>
+        </sld:PolygonSymbolizer>
+      </sld:Rule>       
+        <sld:Rule>
+        <sld:Title>2</sld:Title>
+        <ogc:Filter>
+          <ogc:PropertyIsEqualTo>
+            <ogc:PropertyName>marg_num</ogc:PropertyName>
+            <ogc:Literal>2</ogc:Literal>
+          </ogc:PropertyIsEqualTo>
+        </ogc:Filter>
+        <sld:PolygonSymbolizer>
+          <sld:Fill>
+            <sld:CssParameter name="fill">#3399FF</sld:CssParameter>
+          </sld:Fill>
+        </sld:PolygonSymbolizer>
+      </sld:Rule>       
+       <sld:Rule>
+        <sld:Title>3</sld:Title>
+        <ogc:Filter>
+          <ogc:PropertyIsEqualTo>
+            <ogc:PropertyName>marg_num</ogc:PropertyName>
+            <ogc:Literal>3</ogc:Literal>
+          </ogc:PropertyIsEqualTo>
+        </ogc:Filter>
+        <sld:PolygonSymbolizer>
+          <sld:Fill>
+            <sld:CssParameter name="fill">#66CCFF</sld:CssParameter>
+          </sld:Fill>
+        </sld:PolygonSymbolizer>
+      </sld:Rule>       
+        <sld:Rule>
+        <sld:Title>4</sld:Title>
+        <ogc:Filter>
+          <ogc:PropertyIsEqualTo>
+            <ogc:PropertyName>marg_num</ogc:PropertyName>
+            <ogc:Literal>4</ogc:Literal>
+          </ogc:PropertyIsEqualTo>
+        </ogc:Filter>
+        <sld:PolygonSymbolizer>
+          <sld:Fill>
+            <sld:CssParameter name="fill">#CCFFFF</sld:CssParameter>
+          </sld:Fill>
+        </sld:PolygonSymbolizer>
+      </sld:Rule>       
+        <sld:Rule>
+        <sld:Title>5</sld:Title>
+        <ogc:Filter>
+          <ogc:PropertyIsEqualTo>
+            <ogc:PropertyName>marg_num</ogc:PropertyName>
+            <ogc:Literal>5</ogc:Literal>
+          </ogc:PropertyIsEqualTo>
+        </ogc:Filter>
+        <sld:PolygonSymbolizer>
+          <sld:Fill>
+            <sld:CssParameter name="fill">#FFFFFF</sld:CssParameter>
+          </sld:Fill>
+        </sld:PolygonSymbolizer>
+      </sld:Rule>       
+      </sld:FeatureTypeStyle>
+    </sld:UserStyle>
+   </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+
+
+	hansenLegend
+	------------------------------------------------------------------------------------	
+	
+<?xml version="1.0" encoding="UTF-8"?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>forestro_users_ws:dummyDataLayerForWMSLegend</sld:Name>
+        <sld:UserStyle>
+            <sld:Title>Basemap: Forest Change 2000-2012</sld:Title>
+            <sld:FeatureTypeStyle>
+                <sld:Rule>
+                    <sld:Title>Not Forested</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#000000</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Forested in 2000</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#00FF00</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Loss between 2000 and 2012</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#FF0000</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Gain between 2000 and 2012</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#0000FF</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Both Loss and Gain</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#FF00FF</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+
+	hansenLegend_span
+	------------------------------------------------------------------------------------	
+<?xml version="1.0" encoding="UTF-8"?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>forestro_users_ws:dummyDataLayerForWMSLegend</sld:Name>
+        <sld:UserStyle>
+            <sld:Title>Basemap: Cambio Forestal 2000-2012</sld:Title>
+            <sld:FeatureTypeStyle>
+                <sld:Rule>
+                    <sld:Title>No forestada</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#000000</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Boscosa en 2000</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#00FF00</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Pérdida entre 2000 y 2012</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#FF0000</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Aumenta entre 2000 y 2012</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#0000FF</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Ambos pérdida y aumenta</sld:Title>
+                    <PolygonSymbolizer>
+                        <Fill>
+                            <CssParameter name="fill">#FF00FF</CssParameter>
+                            <CssParameter name="fill-opacity">1</CssParameter>
+                        </Fill>
+                        <sld:Stroke />
+                    </PolygonSymbolizer>
+                </sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+
+
+THE REMAINING STYLES ARE NO LONGER BEING USED IN VERSION 1.1. JUST LEAVING THEM HERE FOR POSTERIORITY
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+
+
+	data_prioritize_CB
+	------------------------------------------------------------------------------------
+		<?xml version="1.0" encoding="UTF-8" ?>
+		<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+			<sld:NamedLayer>
+				<sld:Name>forestro_ws:data_prioritize</sld:Name>
+				<sld:UserStyle>
+					<sld:Name>data_prioritize_CB</sld:Name>
+					<sld:Title/>
+					<sld:FeatureTypeStyle>
+						<sld:Rule>
+							<sld:Title>Carbon only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#00FF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Biodiversity only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FF0000</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Carbon and Biodiversity</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Omitted (null benefit value)</sld:Title>
+							<ogc:Filter>
+								<ogc:Or>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>carbon_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>bio_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Or>
+							</ogc:Filter>
+							<PolygonSymbolizer>
+								<Fill>
+									<CssParameter name="fill">#808080</CssParameter>
+									<CssParameter name="fill-opacity">1</CssParameter>
+								</Fill>
+							</PolygonSymbolizer>
+						</sld:Rule>
+					</sld:FeatureTypeStyle>
+				</sld:UserStyle>
+			</sld:NamedLayer>
+		</sld:StyledLayerDescriptor>
+		
+    data_prioritize_CB_span
+	------------------------------------------------------------------------------------
+		<?xml version="1.0" encoding="UTF-8" ?>
+		<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+			<sld:NamedLayer>
+				<sld:Name>forestro_ws:data_prioritize</sld:Name>
+				<sld:UserStyle>
+					<sld:Name>data_prioritize_CB</sld:Name>
+					<sld:Title/>
+					<sld:FeatureTypeStyle>
+						<sld:Rule>
+							<sld:Title>Sólo Carbono</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#00FF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Sólo Biodiversidad</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FF0000</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Carbono y Biodiversidad</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Omitido (beneficio nulo)</sld:Title>
+							<ogc:Filter>
+								<ogc:Or>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>carbon_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>bio_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Or>
+							</ogc:Filter>
+							<PolygonSymbolizer>
+								<Fill>
+									<CssParameter name="fill">#808080</CssParameter>
+									<CssParameter name="fill-opacity">1</CssParameter>
+								</Fill>
+							</PolygonSymbolizer>
+						</sld:Rule>
+					</sld:FeatureTypeStyle>
+				</sld:UserStyle>
+			</sld:NamedLayer>
+		</sld:StyledLayerDescriptor>
+
+	data_prioritize_CH
+	------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8" ?>
+    <sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+      <sld:NamedLayer>
+        <sld:Name>forestro_ws:data_prioritize</sld:Name>
+        <sld:UserStyle>
+          <sld:Name>data_prioritize_CH</sld:Name>
+          <sld:Title/>
+          <sld:FeatureTypeStyle>
+            <sld:Rule>
+              <sld:Title>Carbon Only</sld:Title>
+              <ogc:Filter>
+                <ogc:And>
+                  <ogc:PropertyIsEqualTo>
+                    <ogc:PropertyName>selectedc</ogc:PropertyName>
+                    <ogc:Literal>1</ogc:Literal>
+                  </ogc:PropertyIsEqualTo>
+                  <ogc:PropertyIsNotEqualTo>
+                    <ogc:PropertyName>selectedh</ogc:PropertyName>
+                    <ogc:Literal>1</ogc:Literal>
+                  </ogc:PropertyIsNotEqualTo>
+                </ogc:And>
+              </ogc:Filter>
+              <sld:PolygonSymbolizer>
+                <sld:Fill>
+                  <sld:CssParameter name="fill">#00FF00</sld:CssParameter>
+                </sld:Fill>
+                <sld:Stroke/></sld:PolygonSymbolizer>
+            </sld:Rule>
+            <sld:Rule>
+              <sld:Title>Hydrological Only</sld:Title>
+              <ogc:Filter>
+                <ogc:And>
+                  <ogc:PropertyIsEqualTo>
+                    <ogc:PropertyName>selectedh</ogc:PropertyName>
+                    <ogc:Literal>1</ogc:Literal>
+                  </ogc:PropertyIsEqualTo>
+                  <ogc:PropertyIsNotEqualTo>
+                    <ogc:PropertyName>selectedc</ogc:PropertyName>
+                    <ogc:Literal>1</ogc:Literal>
+                  </ogc:PropertyIsNotEqualTo>
+                </ogc:And>
+              </ogc:Filter>
+              <sld:PolygonSymbolizer>
+                <sld:Fill>
+                  <sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+                </sld:Fill>
+                <sld:Stroke/></sld:PolygonSymbolizer>
+            </sld:Rule>
+            <sld:Rule>
+              <sld:Title>Carbon and Hydrological</sld:Title>
+              <ogc:Filter>
+                <ogc:And>
+                  <ogc:PropertyIsEqualTo>
+                    <ogc:PropertyName>selectedc</ogc:PropertyName>
+                    <ogc:Literal>1</ogc:Literal>
+                  </ogc:PropertyIsEqualTo>
+                  <ogc:PropertyIsEqualTo>
+                    <ogc:PropertyName>selectedh</ogc:PropertyName>
+                    <ogc:Literal>1</ogc:Literal>
+                  </ogc:PropertyIsEqualTo>
+                </ogc:And>
+              </ogc:Filter>
+              <sld:PolygonSymbolizer>
+                <sld:Fill>
+                  <sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+                </sld:Fill>
+                <sld:Stroke/></sld:PolygonSymbolizer>
+            </sld:Rule>
+			<sld:Rule>
+				<sld:Title>Omitted (null benefit value)</sld:Title>
+				<ogc:Filter>
+					<ogc:Or>
+						<ogc:PropertyIsNull>
+							<ogc:PropertyName>hydro_norm</ogc:PropertyName>
+						</ogc:PropertyIsNull>
+						<ogc:PropertyIsNull>
+							<ogc:PropertyName>carbon_norm</ogc:PropertyName>
+						</ogc:PropertyIsNull>
+					</ogc:Or>
+				</ogc:Filter>
+				<PolygonSymbolizer>
+					<Fill>
+						<CssParameter name="fill">#808080</CssParameter>
+						<CssParameter name="fill-opacity">1</CssParameter>
+					</Fill>
+				</PolygonSymbolizer>
+			</sld:Rule>
+          </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+      </sld:NamedLayer>
+    </sld:StyledLayerDescriptor>
+
+		
+	data_prioritize_CH_span
+	------------------------------------------------------------------------------------
+			<?xml version="1.0" encoding="UTF-8" ?>
+		<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+			<sld:NamedLayer>
+				<sld:Name>forestro_ws:data_prioritize</sld:Name>
+				<sld:UserStyle>
+					<sld:Name>data_prioritize_CH</sld:Name>
+					<sld:Title/>
+					<sld:FeatureTypeStyle>
+						<sld:Rule>
+							<sld:Title>Sólo Carbono</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#00FF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Sólo Hidrológico</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Carbono y Hidrológico</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Omitido (beneficio nulo)</sld:Title>
+							<ogc:Filter>
+								<ogc:Or>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>carbon_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>bio_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Or>
+							</ogc:Filter>
+							<PolygonSymbolizer>
+								<Fill>
+									<CssParameter name="fill">#808080</CssParameter>
+									<CssParameter name="fill-opacity">1</CssParameter>
+								</Fill>
+							</PolygonSymbolizer>
+						</sld:Rule>
+					</sld:FeatureTypeStyle>
+				</sld:UserStyle>
+			</sld:NamedLayer>
+		</sld:StyledLayerDescriptor>
+		
+	data_prioritize_BH
+	------------------------------------------------------------------------------------
+		<?xml version="1.0" encoding="UTF-8" ?>
+		<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+			<sld:NamedLayer>
+				<sld:Name>forestro_ws:data_prioritize</sld:Name>
+				<sld:UserStyle>
+					<sld:Name>data_prioritize_BH</sld:Name>
+					<sld:Title/>
+					<sld:FeatureTypeStyle>
+						<sld:Rule>
+							<sld:Title>Biodiversity only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FF0000</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Hydrological only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Biodiversity and Hydrological</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Omitted (null benefit value)</sld:Title>
+							<ogc:Filter>
+								<ogc:Or>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>hydro_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>bio_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Or>
+							</ogc:Filter>
+							<PolygonSymbolizer>
+								<Fill>
+									<CssParameter name="fill">#808080</CssParameter>
+									<CssParameter name="fill-opacity">1</CssParameter>
+								</Fill>
+							</PolygonSymbolizer>
+						</sld:Rule>
+					</sld:FeatureTypeStyle>
+				</sld:UserStyle>
+			</sld:NamedLayer>
+		</sld:StyledLayerDescriptor>
+
+	data_prioritize_BH_span
+	------------------------------------------------------------------------------------
+	<?xml version="1.0" encoding="UTF-8" ?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>forestro_ws:data_prioritize</sld:Name>
+        <sld:UserStyle>
+            <sld:Name>data_prioritize_BH</sld:Name>
+            <sld:Title/>
+            <sld:FeatureTypeStyle>
+                <sld:Rule>
+                    <sld:Title>Sólo Biodiversidad</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#FF0000</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Sólo Hidrológico</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Biodiversidad y Hidrológico</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+				<sld:Rule>
+					<sld:Title>Omitido (beneficio nulo)</sld:Title>
+					<ogc:Filter>
+						<ogc:Or>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>hydro_norm</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>bio_norm</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+						</ogc:Or>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#808080</CssParameter>
+							<CssParameter name="fill-opacity">1</CssParameter>
+						</Fill>
+					</PolygonSymbolizer>
+				</sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+	
+	data_prioritize_CBH
+	------------------------------------------------------------------------------------
+		<?xml version="1.0" encoding="UTF-8" ?>
+		<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+			<sld:NamedLayer>
+				<sld:Name>forestro_ws:data_prioritize</sld:Name>
+				<sld:UserStyle>
+					<sld:Name>data_prioritize_CBH</sld:Name>
+					<sld:Title/>
+					<sld:FeatureTypeStyle>
+						<sld:Rule>
+							<sld:Title>Carbon only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#00FF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Biodiversity only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FF0000</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Hydrological only</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Carbon and Biodiversity</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Carbon and Hydrological</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#00FFFF</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Biodiversity and Hydrological</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsNotEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsNotEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FF00FF</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>All three benefits</sld:Title>
+							<ogc:Filter>
+								<ogc:And>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedc</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedb</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>selectedh</ogc:PropertyName>
+										<ogc:Literal>1</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+								</ogc:And>
+							</ogc:Filter>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<sld:CssParameter name="fill">#FFFFFF</sld:CssParameter>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+							<sld:PolygonSymbolizer>
+								<sld:Fill>
+									<GraphicFill>
+										<Graphic>
+											<Mark>
+												<WellKnownName>shape://times</WellKnownName>
+												<Stroke>
+													<CssParameter name="stroke">#000000</CssParameter>
+													<CssParameter name="stroke-width">1</CssParameter>
+												</Stroke>
+											</Mark>
+											<Size>16</Size>
+										</Graphic>
+									</GraphicFill>
+								</sld:Fill>
+								<sld:Stroke/></sld:PolygonSymbolizer>
+						</sld:Rule>
+						<sld:Rule>
+							<sld:Title>Omitted (null benefit value)</sld:Title>
+							<ogc:Filter>
+								<ogc:Or>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>carbon_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>hydro_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>bio_norm</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Or>
+							</ogc:Filter>
+							<PolygonSymbolizer>
+								<Fill>
+									<CssParameter name="fill">#808080</CssParameter>
+									<CssParameter name="fill-opacity">1</CssParameter>
+								</Fill>
+							</PolygonSymbolizer>
+						</sld:Rule>
+					</sld:FeatureTypeStyle>
+				</sld:UserStyle>
+			</sld:NamedLayer>
+		</sld:StyledLayerDescriptor>
+
+	data_prioritize_CBH_span
+	------------------------------------------------------------------------------------		
+<?xml version="1.0" encoding="UTF-8" ?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>forestro_ws:data_prioritize</sld:Name>
+        <sld:UserStyle>
+            <sld:Name>data_prioritize_CBH</sld:Name>
+            <sld:Title/>
+            <sld:FeatureTypeStyle>
+                <sld:Rule>
+                    <sld:Title>Sólo Carbono</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#00FF00</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Sólo Biodiversidad</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#FF0000</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Sólo Hidrológico</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#0000FF</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Carbono y Biodiversidad</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#FFFF00</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Carbono y Hidrológico</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#00FFFF</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Biodiversidad y Hidrológico</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsNotEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsNotEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#FF00FF</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+                <sld:Rule>
+                    <sld:Title>Todos Tres Beneficios</sld:Title>
+                    <ogc:Filter>
+                        <ogc:And>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedc</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedb</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                            <ogc:PropertyIsEqualTo>
+                                <ogc:PropertyName>selectedh</ogc:PropertyName>
+                                <ogc:Literal>1</ogc:Literal>
+                            </ogc:PropertyIsEqualTo>
+                        </ogc:And>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#FFFFFF</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <GraphicFill>
+                                <Graphic>
+                                    <Mark>
+                                        <WellKnownName>shape://times</WellKnownName>
+                                        <Stroke>
+                                            <CssParameter name="stroke">#000000</CssParameter>
+                                            <CssParameter name="stroke-width">1</CssParameter>
+                                        </Stroke>
+                                    </Mark>
+                                    <Size>16</Size>
+                                </Graphic>
+                            </GraphicFill>
+                        </sld:Fill>
+                        <sld:Stroke/></sld:PolygonSymbolizer>
+                </sld:Rule>
+				<sld:Rule>
+					<sld:Title>Omitido (beneficio nulo)</sld:Title>
+					<ogc:Filter>
+						<ogc:Or>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>carbon_norm</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>hydro_norm</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>bio_norm</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+						</ogc:Or>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#808080</CssParameter>
+							<CssParameter name="fill-opacity">1</CssParameter>
+						</Fill>
+					</PolygonSymbolizer>
+				</sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+
+	data_prioritize_Default
+	------------------------------------------------------------------------------------
+<?xml version="1.0" encoding="UTF-8" ?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>forestro_ws:data_prioritize</sld:Name>
+        <sld:UserStyle>
+            <sld:Name>data_prioritize_Default</sld:Name>
+            <sld:FeatureTypeStyle>
+                <sld:Rule>
+                  <sld:Title>Selected</sld:Title>
+                    <ogc:Filter>
+                        <ogc:PropertyIsEqualTo>
+                            <ogc:PropertyName>selected</ogc:PropertyName>
+                            <ogc:Literal>1</ogc:Literal>
+                        </ogc:PropertyIsEqualTo>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#e2ff00</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/>
+                    </sld:PolygonSymbolizer>
+                </sld:Rule>
+				<sld:Rule>
+					<sld:Title>Omitted (null benefit value)</sld:Title>
+					<ogc:Filter>
+						<ogc:PropertyIsNull>
+							<ogc:PropertyName>compositeecb</ogc:PropertyName>
+						</ogc:PropertyIsNull>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#808080</CssParameter>
+							<CssParameter name="fill-opacity">1</CssParameter>
+						</Fill>
+					</PolygonSymbolizer>
+				</sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+
+
+
+	data_prioritize_Default_span
+	------------------------------------------------------------------------------------		
+<?xml version="1.0" encoding="UTF-8" ?>
+<sld:StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" version="1.0.0">
+    <sld:NamedLayer>
+        <sld:Name>forestro_ws:data_prioritize</sld:Name>
+        <sld:UserStyle>
+            <sld:Name>data_prioritize_Default</sld:Name>
+            <sld:FeatureTypeStyle>
+                <sld:Rule>
+                  <sld:Title>Seleccionado</sld:Title>
+                    <ogc:Filter>
+                        <ogc:PropertyIsEqualTo>
+                            <ogc:PropertyName>selected</ogc:PropertyName>
+                            <ogc:Literal>1</ogc:Literal>
+                        </ogc:PropertyIsEqualTo>
+                    </ogc:Filter>
+                    <sld:PolygonSymbolizer>
+                        <sld:Fill>
+                            <sld:CssParameter name="fill">#e2ff00</sld:CssParameter>
+                        </sld:Fill>
+                        <sld:Stroke/>
+                    </sld:PolygonSymbolizer>
+                </sld:Rule>
+				<sld:Rule>
+					<sld:Title>Omitido (beneficio nulo)</sld:Title>
+					<ogc:Filter>
+						<ogc:PropertyIsNull>
+							<ogc:PropertyName>compositeecb</ogc:PropertyName>
+						</ogc:PropertyIsNull>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#808080</CssParameter>
+							<CssParameter name="fill-opacity">1</CssParameter>
+						</Fill>
+					</PolygonSymbolizer>
+				</sld:Rule>
+            </sld:FeatureTypeStyle>
+        </sld:UserStyle>
+    </sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+		
+		
+		*/
+
