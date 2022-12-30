@@ -1,0 +1,8 @@
+{
+ "schemaVersion": 2,
+ "dockerfileLines": [
+    "FROM php:fpm",
+    "COPY ./src /code",
+    "COPY ./conf/php/log.conf /usr/local/etc/php-fpm.d/zz-log.conf"
+ ]
+}
