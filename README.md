@@ -13,4 +13,6 @@ Geoserver - OGC-compliant map server
 
 PostgreSQL - Relational database management system. PostgreSQL should also include the following extensions: postgis, postgis_topology, fuzzystrmatch and postgis_tiger_geocoder
 
+# Note
 
+- Currently testing CapRover deployment.
