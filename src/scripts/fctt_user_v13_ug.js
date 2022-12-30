@@ -172,7 +172,7 @@
 			
 			Ext.getCmp('datasource').selectedIndex = 0;
 			Ext.getCmp('selectModeCombo').selectedIndex = 0;
-			Ext.getCmp('basemapCombo').selectedIndex = 1;
+			Ext.getCmp('basemapCombo').selectedIndex = 3;
 			Ext.getCmp('methodCombo').selectedIndex = 0;
 			Ext.getCmp('compareObjectiveCombo').selectedIndex = 0;
 						
