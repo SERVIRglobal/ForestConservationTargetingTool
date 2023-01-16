@@ -1053,7 +1053,12 @@
 				  ]
 				}),
 			bbar: [
-					{id: "resetButton", text: "<div style='color:blue;font-weight: bold;font-size: 12'>Reset All</div>", handler: function() {									
+					{id: "resetButton", text: "<div style='color:blue;font-weight: bold;font-size: 12'>Reset All</div>", handler: function() {		
+						
+						// Fix reload not working: Reload all page (16/01/23)
+						document.location.reload(true);			
+						
+						// All this is ignores
 						dataSourceNum=Ext.getCmp('datasource').store.data.items[Ext.getCmp('datasource').selectedIndex].data.field1;;
 						
 						setDataSource(dataSourceNum);
