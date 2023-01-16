@@ -672,7 +672,7 @@ GeoExt.data.PrintProvider = Ext.extend(Ext.util.Observable, {
 						break;
 				}
 				return {
-					baseURL: 'http://maps.google.com/maps/api/staticmap?key=AIzaSyD2LFlu-k3J5XXu-NBr8NxHaJ2aNJ803rg',
+					baseURL: 'http://maps.google.com/maps/api/staticmap?key=AIzaSyAaX6ffafZF2t7WBoSqoscrnTT1kL56CmE',
 									type : 'TiledGoogle',
 									maxExtent: [-20037508.3392,-20037508.3392,20037508.3392,20037508.3392],
 									tileSize: [256,256],

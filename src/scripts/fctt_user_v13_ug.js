@@ -133,12 +133,14 @@
 						autoEl : {
 							tag : "iframe",
 							frameborder: 0,
-							src : ""//../../usersystem/splashscreen.php?lang="+curLanguage
+							src : "/../../usersystem/splashscreen.php?lang="+curLanguage
 						},
 						refreshMe : function(src){
+							// Fix error when this.el was undefined (16/01/23)
 							 var el;
-							 if(el = this.el){
-								el.dom.src = (src || this.imageSrc);// + '?dc=' + new Date().getTime();
+							if (this.el){
+								el = this.el;
+								el.dom.src = src || this.imageSrc;
 							 }
 						  },
 					  listeners : {
@@ -264,9 +266,9 @@
 			
 			ghan.setVisibility(false);
 			ghyb.setVisibility(false);
-			gsat.setVisibility(false);
+			gsat.setVisibility(true); // Temporary basemap fix: Only satellite works at the start (16/01/23)
 			gosm.setVisibility(false);
-			gphy.setVisibility(true);
+			gphy.setVisibility(false);
 			marginalityLayer.setVisibility(false);
 			prioritizationLayer.setVisibility(false);
 			updateStyling();	
