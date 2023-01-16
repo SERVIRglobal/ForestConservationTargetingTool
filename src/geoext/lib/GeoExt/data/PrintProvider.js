@@ -460,6 +460,11 @@ GeoExt.data.PrintProvider = Ext.extend(Ext.util.Observable, {
             jsonData.legends = encodedLegends;
         }
 
+        // Fix for printing server (16/01/2023)
+        var base_url = window.location.origin;
+        this.capabilities.createURL = base_url + "/geoserver/pdf/create.json";
+		this.capabilities.printURL = base_url + "/geoserver/pdf/print.pdf";
+
         if(this.method === "GET") {
             var url = Ext.urlAppend(this.capabilities.printURL,
                 "spec=" + encodeURIComponent(Ext.encode(jsonData)));
@@ -473,8 +478,12 @@ GeoExt.data.PrintProvider = Ext.extend(Ext.util.Observable, {
                     // In IE, using a Content-disposition: attachment header
                     // may make it hard or impossible to download the pdf due
                     // to security settings. So we'll display the pdf inline.
-                    var url = Ext.decode(response.responseText).getURL +
-                        (Ext.isIE ? "?inline=true" : "");
+                    
+                    // Fix for printing server (16/01/2023)
+                    var url = Ext.decode(response.responseText).getURL;
+                    url = url.replace("http://127.0.0.1:4894", base_url);
+                    
+                    url = url + (Ext.isIE ? "?inline=true" : "");
                     this.download(url);
                 },
                 failure: function(response) {
