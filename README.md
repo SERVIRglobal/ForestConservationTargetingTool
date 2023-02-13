@@ -19,10 +19,10 @@ There are also a set of PHP scripts which deal with user accounts, which are use
 
 ### Front-end: JavaScript Single Page App 
 
-The JavaScript files that are served to the front-end can be found in the public_html folder inside the subfolder /scripts. The project HTML file contains no operational code, it merely loads CSS style sheets and points to two things: 
+The JavaScript files that are served to the front-end can be found in the public_html folder inside the subfolder `/scripts`. The project HTML file contains no operational code, it merely loads CSS style sheets and points to two things: 
 
 1. The Javascript code of the application.
-1. A PHP script called fctt_load.php, which loads session information from cookies if a user has logged in to their user account.
+1. A PHP script called `fctt_load.php`, which loads session information from cookies if a user has logged in to their user account.
 
 ### Back-end: PHP
 
@@ -40,13 +40,20 @@ The subfolder `usersystem/unitofanalysis_shapefiles/` contains data (typically j
 
 PostgreSQL database used by the FCTT is called forestro_users_db. Spatial data is stored in tables within the public schema:
 
-On board data (Mexico predios, MREDD areas, CA 10km and 1km cells, SA 10km and 1km cells), is stored here as tables that begin with `"obd_"`. User defined datasets (output from the User Console) are stored here as `"userdata_[username]_[tablename]"`.
+On board data is the following:
 
-The table "standingdesk" stores user "layerPINs", which is a system that prevents users from viewing layers associated with other users' accounts. layerPINs are also stored in user's individual XML file, so the PIN is loaded into the client's browser after they login to their account, which can then be passed to GeoServer to authenticate requests to their private user layers.
+- Mexico predios
+- MREDD areas
+- CA 10km and 1km cells
+- SA 10km and 1km cells
+
+It is stored here as tables that begin with `obd_`. User defined datasets (output from the User Console) are stored here as `"userdata_[username]_[tablename]"`.
+
+The table `standingdesk` stores user `layerPINs`, which is a system that prevents users from viewing layers associated with other users' accounts. `layerPINs` are also stored in user's individual XML file, so the PIN is loaded into the client's browser after they login to their account, which can then be passed to GeoServer to authenticate requests to their private user layers.
 
 ## Configuration
 
-Troubleshooting is best done by looking at deployment and application logs on the CapRover Admin Interface.
+To troubleshooting refer to the deployment and application logs on the CapRover Admin Interface.
 
 ### NGINX Web server
 
