@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  srv-captain--fctt:
+    build: 
+      dockerfile: ./Dockerfile-frontend
+    ports:
+      - "8000:80"
+  srv-captain--fctt-php:
+    build: 
+      dockerfile: ./Dockerfile-backend
