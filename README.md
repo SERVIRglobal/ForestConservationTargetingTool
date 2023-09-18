@@ -1,6 +1,6 @@
 # Forest Conservation Targeting Tool (FCTT)
 
-The FCTT is a web tool that aids the evaluation of forest conservation policy. It can be accessed at https://fcet.servirglobal.net. The FCTT is hosted as two CapRover apps, one for the front-end and other for the back-end.
+The FCTT is a web tool that aids the evaluation of forest conservation policy. It can be accessed at https://fctt.servirglobal.net. The FCTT is hosted as two CapRover apps, one for the front-end and other for the back-end.
 
 ## System Architecture
 
