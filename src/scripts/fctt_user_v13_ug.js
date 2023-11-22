@@ -174,7 +174,7 @@
 			
 			Ext.getCmp('datasource').selectedIndex = 0;
 			Ext.getCmp('selectModeCombo').selectedIndex = 0;
-			Ext.getCmp('basemapCombo').selectedIndex = 3;
+			Ext.getCmp('basemapCombo').selectedIndex = 1;
 			Ext.getCmp('methodCombo').selectedIndex = 0;
 			Ext.getCmp('compareObjectiveCombo').selectedIndex = 0;
 						
@@ -266,7 +266,7 @@
 			
 			ghan.setVisibility(false);
 			ghyb.setVisibility(false);
-			gsat.setVisibility(true); // Temporary basemap fix: Only satellite works at the start (16/01/23)
+			gsat.setVisibility(false);
 			gosm.setVisibility(false);
 			gphy.setVisibility(false);
 			marginalityLayer.setVisibility(false);
